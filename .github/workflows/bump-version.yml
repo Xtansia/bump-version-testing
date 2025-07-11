@@ -11,19 +11,16 @@ on:
         description: 'Version to bump to'
         required: true
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   bump-version-manual:
     name: Bump Version (Manual)
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - name: Generate GitHub App Token
-        id: github_app_token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
       - name: Checkout .github/actions directory
         uses: actions/checkout@v4
         with:
@@ -37,9 +34,8 @@ jobs:
         with:
           branch: ${{ inputs.branch }}
           version: ${{ inputs.version }}
-          token: ${{ steps.github_app_token.outputs.token }}
 
-  created-ref:
+  bump-version-auto:
     name: Bump Version On New Git Ref
     if: github.event_name == 'create'
      # && github.repository == 'opensearch-project/opensearch-java'
@@ -108,14 +104,6 @@ jobs:
             echo "is_major_bump=${is_major_bump}"
             echo "is_minor_bump=${is_minor_bump}"
           } | tee -a "${GITHUB_ENV}"
-
-      - name: Generate GitHub App Token
-        id: github_app_token
-        uses: actions/create-github-app-token@v2
-        if: env.is_version_tag == 'true' || env.is_patch_indev_branch == 'true' || env.is_minor_indev_branch == 'true'
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       
       - name: Create ${{ env.patch_indev_branch_name }} Branch
         if: false && env.is_minor_bump == 'true'
@@ -124,7 +112,7 @@ jobs:
           branch: ${{ env.patch_indev_branch_name }}
           sha: ${{ github.sha }}
         env:
-          GITHUB_TOKEN: ${{ steps.github_app_token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Create ${{ env.minor_indev_branch_name }} Branch
         if: env.is_major_bump == 'true'
@@ -133,7 +121,7 @@ jobs:
           branch: ${{ env.minor_indev_branch_name }}
           sha: ${{ github.sha }}
         env:
-          GITHUB_TOKEN: ${{ steps.github_app_token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Bump Version On ${{ env.patch_indev_branch_name }} Branch
         if: env.is_patch_indev_branch == 'true' || (env.is_version_tag == 'true' && env.patch > 0)
@@ -141,7 +129,6 @@ jobs:
         with:
           branch: ${{ env.patch_indev_branch_name }}
           version: ${{ env.next_patch_version }}
-          token: ${{ steps.github_app_token.outputs.token }}
 
       - name: Bump Version On ${{ env.minor_indev_branch_name }} Branch
         if: env.is_minor_indev_branch == 'true' || env.is_minor_bump == 'true'
@@ -149,7 +136,6 @@ jobs:
         with:
           branch: ${{ env.minor_indev_branch_name }}
           version: ${{ env.next_minor_version }}
-          token: ${{ steps.github_app_token.outputs.token }}
 
       - name: Bump Version On main Branch
         if: env.is_major_bump == 'true'
@@ -157,4 +143,3 @@ jobs:
         with:
           branch: main
           version: ${{ env.next_major_version }}
-          token: ${{ steps.github_app_token.outputs.token }}

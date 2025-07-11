@@ -8,10 +8,6 @@ inputs:
     description: 'Version to bump to'
     required: true
     type: string
-  token:
-    description: 'GitHub Token'
-    required: true
-    type: string
 runs:
   using: 'composite'
   steps:
@@ -19,7 +15,6 @@ runs:
       uses: actions/checkout@v4
       with:
         ref: ${{ inputs.branch }}
-        token: ${{ inputs.token }}
         path: client
 
     - name: Bump Version To ${{ inputs.version }}
@@ -32,10 +27,10 @@ runs:
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v7
       with:
-        token: ${{ inputs.token }}
+        token: ${{ github.token }}
         path: client
         base: ${{ inputs.branch }}
-        branch: 'feat/${{ inputs.branch }}/bump-version'
+        branch: 'bump-version/${{ inputs.branch }}'
         commit-message: Bump version to ${{ inputs.version }}
         signoff: true
         delete-branch: true
